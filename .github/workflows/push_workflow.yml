@@ -1,5 +1,4 @@
-
-name: Configuration du projet
+name: Workflow du projet
 
 on:
   push:
@@ -8,11 +7,20 @@ on:
 
 jobs:
   build:
+    name: Build et test de l'application
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout du projet
         uses: actions/checkout@v4
+
+      - name: Cache Maven dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
 
       - name: Setup JDK 17
         uses: actions/setup-java@v4
@@ -24,5 +32,28 @@ jobs:
         run: mvn install
 
       - name: Build application
-        run: echo "Build de mon application..."
+        run: mvn package
+
+      - name: Tests
+        run: mvn test
+
+      - name: Upload du build
+        uses: actions/upload-artifact@v4
+        with:
+          name: mon_app
+          path: target/*.jar
+
+  download:
+    name: Télécharger et vérifier l'artefact
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Récupérer l'artefact
+        uses: actions/download-artifact@v4
+        with:
+          name: mon_app
+
+      - name: Lister les fichiers
+        run: ls
 
